@@ -1,22 +1,14 @@
-# Usa una imagen oficial de R
-FROM rocker/r-ver:4.3.1
+FROM r-base:4.3.1
 
-# Instala dependencias del sistema necesarias para compilar paquetes
-RUN apt-get update -qq && apt-get install -y \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Instalar plumber (y otras dependencias si las necesitas)
+RUN R -e "install.packages('plumber', repos='https://cloud.r-project.org')"
 
-# Instala los paquetes de R necesarios
-RUN R -e "install.packages(c('plumber','dplyr'), repos='https://cloud.r-project.org/')"
-
-# Copia tu proyecto al contenedor
+# Copiar tu API al contenedor
 WORKDIR /app
-COPY . /app
+COPY api.R /app/
 
-# Render necesita que expongas el puerto 8000
+# Exponer el puerto (Render usa $PORT)
 EXPOSE 8000
 
-# Comando para arrancar la API
-CMD ["Rscript", "app.R"]
+# Comando para ejecutar la API con plumber
+CMD ["R", "-e", "pr <- plumber::plumb('api.R'); pr$run(host='0.0.0.0', port=as.numeric(Sys.getenv('PORT', 8000)))"]
